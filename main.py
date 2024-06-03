@@ -3,14 +3,19 @@ import os
 import json
 import yaml
 import textwrap
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QListWidget, QLineEdit, QLabel, QRadioButton, QFileDialog, QMessageBox, QButtonGroup, QCheckBox
+from PyQt6.QtWidgets import (
+    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
+    QListWidget, QLineEdit, QLabel, QRadioButton, QFileDialog,
+    QMessageBox, QButtonGroup, QCheckBox
+)
+from PyQt6.QtCore import Qt
 
 
 class FileCollectorApp(QWidget):
     def __init__(self):
         super().__init__()
         self.selected_folders = []
-        self.excluded_folders = ['.git', 'vendor', 'node_modules', '__pycache__', '.idea', '.vscode', '.venv']
+        self.excluded_folders = ["node_modules", "vendor", ".git", ".idea", ".github", ".husky", ".vscode", ".archive", ".cypress", ".git", ".github", ".husky", ".idea", ".scaffoldes", ".storybook", ".vscode", "build", "dist", "node_modules", "public", "vendor"]
         self.initUI()
 
     def initUI(self):
@@ -170,4 +175,4 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = FileCollectorApp()
     ex.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
