@@ -26,8 +26,11 @@ class FileCollectorApp(QWidget):
         self.folder_list = QListWidget()
         add_folder_button = QPushButton("Add Folder")
         add_folder_button.clicked.connect(self.add_folder)
+        remove_folder_button = QPushButton("Remove Selected")
+        remove_folder_button.clicked.connect(self.remove_selected_folder)
         folder_selection_layout.addWidget(self.folder_list)
         folder_selection_layout.addWidget(add_folder_button)
+        folder_selection_layout.addWidget(remove_folder_button)
         layout.addLayout(folder_selection_layout)
 
         # File Types
@@ -83,6 +86,14 @@ class FileCollectorApp(QWidget):
         if folder:
             self.selected_folders.append(folder)
             self.folder_list.addItem(folder)
+
+    def remove_selected_folder(self):
+        selected_items = self.folder_list.selectedItems()
+        if not selected_items:
+            return
+        for item in selected_items:
+            self.selected_folders.remove(item.text())
+            self.folder_list.takeItem(self.folder_list.row(item))
 
     def collect_and_save(self):
         file_types = [ftype.strip() for ftype in self.file_types_input.text().split(',')]
