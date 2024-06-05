@@ -28,10 +28,10 @@ File Collector is a desktop application built using PyQt6 that allows users to c
     cd content-collector
     ```
 
-2. Install the required packages:
+2. Run the setup script:
 
     ```sh
-    pip install PyQt6 pyyaml
+    ./run.sh
     ```
 
 ## Usage
@@ -39,7 +39,7 @@ File Collector is a desktop application built using PyQt6 that allows users to c
 1. Run the application:
 
     ```sh
-    python main.py
+    ./run.sh
     ```
 
 2. The application window will appear.
@@ -64,3 +64,5 @@ File Collector is a desktop application built using PyQt6 that allows users to c
 
 - **main.py**: The main application file that contains the PyQt6 UI and logic for collecting and saving file contents.
 - **FileMinifier.py**: A utility class for minifying file content by removing comments and unnecessary whitespace.
+- **requirements.txt**: A file listing the required Python packages for the project.
+- **run.sh**: A shell script to install dependencies and run the application.
