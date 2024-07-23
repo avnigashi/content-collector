@@ -3,11 +3,16 @@ import os
 import json
 import yaml
 import textwrap
+import tempfile
+import shutil
+import base64
+import threading
+from github import Github
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QListWidget, QLineEdit, QLabel, QRadioButton, QFileDialog,
     QMessageBox, QButtonGroup, QCheckBox, QListWidgetItem, QComboBox, QInputDialog,
-    QGroupBox, QSplitter, QProgressBar
+    QGroupBox, QSplitter, QProgressBar, QTabWidget, QTextEdit
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QFont
@@ -53,6 +58,48 @@ class FileCollectorThread(QThread):
 
         self.finished.emit(collected_content)
 
+class GithubDownloadThread(QThread):
+    download_complete = pyqtSignal(str)
+    download_progress = pyqtSignal(int, int)
+
+    def __init__(self, repo_url, output_folder):
+        super().__init__()
+        self.repo_url = repo_url
+        self.output_folder = output_folder
+
+    def run(self):
+        try:
+            g = Github()
+            repo = g.get_repo(self.repo_url.split("github.com/")[-1])
+
+            contents = {}
+            self.process_contents(repo, "", contents)
+
+            with open(os.path.join(self.output_folder, 'repo_contents.json'), 'w', encoding='utf-8') as f:
+                json.dump(contents, f, indent=2, ensure_ascii=False)
+
+            self.download_complete.emit("Download complete!")
+        except Exception as e:
+            self.download_complete.emit(f"Error: {str(e)}")
+
+    def process_contents(self, repo, path, contents):
+        items = repo.get_contents(path)
+        total_items = len(items)
+        for index, item in enumerate(items):
+            self.download_progress.emit(index + 1, total_items)
+            if item.type == "dir":
+                self.process_contents(repo, item.path, contents)
+            else:
+                try:
+                    file_content = base64.b64decode(item.content).decode('utf-8')
+                    file_path = os.path.join(self.output_folder, item.path)
+                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(file_content)
+                    contents[item.path] = file_content
+                except:
+                    contents[item.path] = "Unable to decode file content"
+
 class FileCollectorApp(QWidget):
     def __init__(self):
         super().__init__()
@@ -60,6 +107,10 @@ class FileCollectorApp(QWidget):
         self.file_types = []
         self.excluded_folders = ["node_modules", "vendor", ".git", ".idea", ".github", ".husky", ".vscode", ".archive", ".cypress", ".scaffoldes", ".storybook", "build", "dist", "public"]
         self.profiles = {
+            "": {
+                'file_types': [],
+                'excluded_folders': []
+            },
             "Node/TypeScript Project": {
                 'file_types': ['ts', 'tsx', 'js', 'jsx', 'json', 'yaml', 'yml', 'md', 'html', 'css', 'scss', 'less', 'graphql'],
                 'excluded_folders': ['build', 'dist', 'node_modules', 'public', 'vendor']
@@ -87,6 +138,26 @@ class FileCollectorApp(QWidget):
         title_layout.addWidget(title_label)
         title_layout.addStretch()
         main_layout.addLayout(title_layout)
+
+        # GitHub Link Input
+        github_layout = QHBoxLayout()
+        self.github_input = QLineEdit()
+        self.github_input.setPlaceholderText("Enter GitHub repository URL")
+        self.github_button = QPushButton("Download")
+        self.github_button.clicked.connect(self.start_github_download)
+        github_layout.addWidget(QLabel("GitHub Link:"))
+        github_layout.addWidget(self.github_input)
+        github_layout.addWidget(self.github_button)
+        main_layout.addLayout(github_layout)
+
+        # GitHub Download Progress
+        self.github_progress_bar = QProgressBar()
+        self.github_progress_bar.setVisible(False)
+        main_layout.addWidget(self.github_progress_bar)
+
+        # GitHub Status Label
+        self.github_status_label = QLabel("")
+        main_layout.addWidget(self.github_status_label)
 
         # Main content area
         content_splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -123,9 +194,25 @@ class FileCollectorApp(QWidget):
         right_layout = QVBoxLayout(right_panel)
         right_layout.setSpacing(20)
 
-        # File list
+        # Create a tab widget
+        self.tab_widget = QTabWidget()
+        
+        # File list tab
+        file_list_widget = QWidget()
+        file_list_layout = QVBoxLayout(file_list_widget)
         self.file_list = QListWidget()
-        right_layout.addWidget(self.file_list)
+        file_list_layout.addWidget(self.file_list)
+        self.tab_widget.addTab(file_list_widget, "File List")
+
+        # Preview tab
+        preview_widget = QWidget()
+        preview_layout = QVBoxLayout(preview_widget)
+        self.preview_text = QTextEdit()
+        self.preview_text.setReadOnly(True)
+        preview_layout.addWidget(self.preview_text)
+        self.tab_widget.addTab(preview_widget, "Preview")
+
+        right_layout.addWidget(self.tab_widget)
 
         # Progress bar
         self.progress_bar = QProgressBar()
@@ -139,10 +226,13 @@ class FileCollectorApp(QWidget):
         button_layout = QHBoxLayout()
         collect_button = self.create_button("Collect", self.collect_files)
         export_button = self.create_button("Export", self.export_files)
+        preview_button = self.create_button("Generate Preview", self.generate_preview)
         collect_button.setFixedHeight(50)
         export_button.setFixedHeight(50)
+        preview_button.setFixedHeight(50)
         button_layout.addWidget(collect_button)
         button_layout.addWidget(export_button)
+        button_layout.addWidget(preview_button)
         right_layout.addLayout(button_layout)
 
         content_splitter.addWidget(left_panel)
@@ -231,7 +321,6 @@ class FileCollectorApp(QWidget):
         self.yaml_radio = QRadioButton("YAML")
         self.jsonl_radio = QRadioButton("JSONL")
         self.export_type_group.addButton(self.plain_text_radio)
-        self.export_type_group.addButton(self.json_radio)
         self.export_type_group.addButton(self.yaml_radio)
         self.export_type_group.addButton(self.jsonl_radio)
         export_layout.addWidget(self.plain_text_radio)
@@ -329,6 +418,16 @@ class FileCollectorApp(QWidget):
         self.collector_thread.finished.connect(self.collection_finished)
         self.collector_thread.start()
 
+    def update_progress(self, value):
+        self.progress_bar.setValue(value)
+
+    def update_file_list(self, file_path):
+        self.file_list.addItem(file_path)
+
+    def collection_finished(self, collected_content):
+        self.collected_content = collected_content
+        QMessageBox.information(self, "Collection Complete", f"Collected {len(self.collected_content)} files.")
+
     def export_files(self):
         if not self.collected_content:
             QMessageBox.warning(self, "No Files Collected", "Please collect files before exporting.")
@@ -352,16 +451,6 @@ class FileCollectorApp(QWidget):
                 QMessageBox.information(self, "Export Successful", f"Content exported successfully to {save_path}")
             except Exception as e:
                 QMessageBox.warning(self, "Error Exporting File", f"Could not export file: {str(e)}")
-
-    def update_progress(self, value):
-        self.progress_bar.setValue(value)
-
-    def update_file_list(self, file_path):
-        self.file_list.addItem(file_path)
-
-    def collection_finished(self, collected_content):
-        self.collected_content = collected_content
-        QMessageBox.information(self, "Collection Complete", f"Collected {len(self.collected_content)} files.")
 
     def get_export_type(self):
         if self.plain_text_radio.isChecked():
@@ -406,6 +495,52 @@ class FileCollectorApp(QWidget):
             with open(path, 'w', encoding='utf-8') as f:
                 for file_path, file_content in content.items():
                     f.write(json.dumps({file_path: file_content}, ensure_ascii=False) + '\n')
+
+    def generate_preview(self):
+        if not self.collected_content:
+            QMessageBox.warning(self, "No Files Collected", "Please collect files before generating a preview.")
+            return
+
+        preview_text = ""
+        for file_path, content in self.collected_content.items():
+            preview_text += f"File: {file_path}\n\n"
+            preview_text += textwrap.shorten(content, width=500, placeholder="...\n\n")
+            preview_text += f"\n\n{'='*80}\n\n"
+
+        self.preview_text.setPlainText(preview_text)
+        self.tab_widget.setCurrentIndex(1)  # Switch to the Preview tab
+
+    def start_github_download(self):
+        repo_url = self.github_input.text().strip()
+        if not repo_url:
+            QMessageBox.warning(self, "Invalid Input", "Please enter a valid GitHub repository URL.")
+            return
+
+        output_folder = QFileDialog.getExistingDirectory(self, "Select Output Folder")
+        if not output_folder:
+            return
+
+        self.github_button.setEnabled(False)
+        self.github_progress_bar.setVisible(True)
+        self.github_status_label.setText("Downloading...")
+
+        self.github_thread = GithubDownloadThread(repo_url, output_folder)
+        self.github_thread.download_complete.connect(self.github_download_complete)
+        self.github_thread.download_progress.connect(self.update_github_progress)
+        self.github_thread.start()
+
+    def github_download_complete(self, message):
+        self.github_status_label.setText(message)
+        self.github_button.setEnabled(True)
+        self.github_progress_bar.setVisible(False)
+
+        if message.startswith("Download complete"):
+            self.selected_folders.append(self.github_thread.output_folder)
+            self.folder_list.addItem(self.github_thread.output_folder)
+            QMessageBox.information(self, "Download Complete", "Repository has been downloaded and added to the folder list.")
+
+    def update_github_progress(self, current, total):
+        self.github_progress_bar.setValue(int((current / total) * 100))
 
     def closeEvent(self, event):
         reply = QMessageBox.question(self, 'Window Close', 'Are you sure you want to close the window?',
