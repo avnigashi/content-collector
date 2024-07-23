@@ -2,7 +2,7 @@
 
 Advanced File Collector is a PyQt6-based desktop application for collecting, filtering, previewing, and exporting file contents from multiple directories or GitHub repositories.
 
-![Advanced File Collector Screenshot](https://raw.githubusercontent.com/avnigashi/content-collector/main/screen.png)
+![Advanced File Collector Screenshot](https://raw.githubusercontent.com/avnigashi/content-collector/main/screenx.png)
 
 ## Features
 
