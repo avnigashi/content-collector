@@ -1,19 +1,18 @@
 # File Collector
 
-File Collector is a desktop application built using PyQt6 that allows users to collect, filter, and save file contents from multiple directories. It provides customizable options for file types and folder exclusions and supports exporting the collected content in various formats, including Plain Text, JSON, YAML, and JSONL.
+File Collector is a PyQt6-based desktop application for collecting, filtering, and exporting file contents from multiple directories.
 
 ![Content Collector Screenshot](https://raw.githubusercontent.com/avnigashi/content-collector/main/screen.png)
 
-
 ## Features
 
-- **Select Folders:** Choose multiple folders to scan for files.
-- **Specify File Types:** Filter files to be read based on specified file extensions.
-- **Exclude Specific Folders:** Pre-fill and customize a list of folders to exclude from the scan.
-- **Minify Content:** Option to compress the file content by removing extra whitespace and newlines.
-- **Export Formats:** Save the collected content as Plain Text, JSON, YAML, or JSONL.
-- **User-Friendly Interface:** Built using PyQt6 for a modern and responsive UI.
-- **Error Handling:** Graceful handling of potential errors with user feedback via message boxes.
+- Select multiple folders for scanning
+- Filter files by type
+- Exclude specific folders
+- Minify content option
+- Export as Plain Text, JSON, YAML, or JSONL
+- User-friendly PyQt6 interface
+- Error handling with user feedback
 
 ## Installation
 
@@ -25,47 +24,35 @@ File Collector is a desktop application built using PyQt6 that allows users to c
 ### Steps
 
 1. Clone the repository:
-
-    ```sh
-    git clone https://github.com/avnigashi/content-collector.git
-    cd content-collector
-    ```
+   ```sh
+   git clone https://github.com/avnigashi/content-collector.git
+   cd content-collector
+   ```
 
 2. Run the setup script:
-
-    ```sh
-    ./run.sh
-    ```
+   ```sh
+   ./run.sh
+   ```
 
 ## Usage
 
 1. Run the application:
+   ```sh
+   ./run.sh
+   ```
 
-    ```sh
-    ./run.sh
-    ```
+2. Use the interface to:
+   - Add folders to scan
+   - Specify file types
+   - Customize excluded folders
+   - Choose export format
+   - Toggle content minification
 
-2. The application window will appear.
-
-3. Use the "Add Folder" button to select folders you want to scan.
-
-4. Specify the file types you want to read (comma-separated, e.g., `.txt, .py, .md`).
-
-5. Customize the list of excluded folders if needed.
-
-6. Choose the export type (Plain Text, JSON, YAML, or JSONL).
-
-7. Optionally, check the "Minify Content" checkbox to compress the file content.
-
-8. Click the "Collect and Save" button.
-
-9. Select the save location and file name in the file dialog that appears.
-
-10. The collected content will be saved to the specified file.
+3. Click "Collect and Save" to export the collected content.
 
 ## Project Structure
 
-- **main.py**: The main application file that contains the PyQt6 UI and logic for collecting and saving file contents.
-- **FileMinifier.py**: A utility class for minifying file content by removing comments and unnecessary whitespace.
-- **requirements.txt**: A file listing the required Python packages for the project.
-- **run.sh**: A shell script to install dependencies and run the application.
+- `main.py`: Main application file
+- `FileMinifier.py`: Utility for content minification
+- `requirements.txt`: Required Python packages
+- `run.sh`: Setup and run script
