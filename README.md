@@ -2,7 +2,8 @@
 
 File Collector is a desktop application built using PyQt6 that allows users to collect, filter, and save file contents from multiple directories. It provides customizable options for file types and folder exclusions and supports exporting the collected content in various formats, including Plain Text, JSON, YAML, and JSONL.
 
-![Alt text]([image_url](https://raw.githubusercontent.com/avnigashi/content-collector/main/screen.png))
+![Content Collector Screenshot](https://raw.githubusercontent.com/avnigashi/content-collector/main/screen.png)
+
 
 ## Features
 
